@@ -564,6 +564,7 @@
                 DOMElements.buttonsLayout.classList.add('layout-editor-mode');
                 // The scoreboard is not inside buttons-layout, so add the class separately
                 DOMElements.layoutEditor.scoreboard.classList.add('layout-editor-mode');
+                // *** FIX: Apply the saved layout immediately when opening the editor ***
                 this.apply();
             },
             close() {
