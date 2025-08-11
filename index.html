@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Lightcycles</title>
+    <!-- PWA & iOS Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Preconnect to font domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Load fonts via <link> tags -->
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/dist/phosphor.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --user-color: #00c0c0;
+            --mcp-color: #ff6600;
+            --dark-bg: #121212;
+            --medium-bg: #1a1a1a;
+            --light-bg: #1f1f1f;
+            --text-color: #e0e0e0;
+        }
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+            font-family: 'VT323', monospace;
+            background-color: var(--dark-bg);
+            color: var(--text-color);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .game-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background-color: var(--medium-bg); }
+        .game-display-section { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; position: relative; min-height: 0; }
+        .full-screen-game .game-display-section { height: 100%; padding: 0; }
+        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: #000; border-top: 4px solid #111; padding: 1rem 0; }
+        #game-board { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        #gameCanvas { background-color: var(--light-bg); border: 2px solid var(--user-color); box-shadow: 0 0 20px 5px var(--user-color); transition: all 0.5s ease-in-out; border-radius: 8px; }
+        .game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; transition: opacity 0.5s ease-in-out; z-index: 20; }
+        .game-overlay-content { background-color: rgba(18, 18, 18, 0.9); padding: 2rem 3rem; border-radius: 12px; border: 2px solid var(--user-color); box-shadow: 0 0 15px var(--user-color); animation: fadeIn 1s ease-in-out; }
+        .game-overlay-content h1 { font-size: 3rem; font-weight: 700; color: var(--user-color); margin-bottom: 1rem; text-shadow: 0 0 10px var(--user-color); }
+        .game-overlay-content h2 { font-size: 2rem; margin-bottom: 1.5rem; color: #ffffff; }
+        .game-overlay-content p { font-size: 1.5rem; margin-bottom: 2.5rem; line-height: 1.6; }
+        .game-button { padding: 0.75rem 2.5rem; font-size: 1.5rem; font-weight: 700; color: var(--dark-bg); background-color: var(--user-color); border: none; border-radius: 9999px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 192, 192, 0.5); transition: all 0.2s ease-in-out; text-transform: uppercase; letter-spacing: 1px; margin: 0.5rem; }
+        .game-button:hover { background-color: #00e0e0; box-shadow: 0 6px 18px rgba(0, 192, 192, 0.7); transform: translateY(-2px); }
+        .hidden { display: none !important; }
+        .score-container { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; font-size: 2rem; font-weight: 700; white-space: nowrap; z-index: 5; }
+        .user-score { color: var(--user-color); text-shadow: 0 0 5px var(--user-color); }
+        .mcp-score { color: var(--mcp-color); text-shadow: 0 0 5px var(--mcp-color); }
+        #countdown-display { font-size: 10rem; font-weight: bold; color: white; text-shadow: 0 0 20px var(--user-color); position: absolute; }
+        .mobile-controls-layout { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .draggable { position: absolute; cursor: grab; transition: none !important; pointer-events: auto; display: flex; justify-content: center; align-items: center; }
+        .draggable:active { cursor: grabbing; }
+        .layout-editor-mode .draggable { outline: 2px dashed var(--user-color); background-color: rgba(0, 192, 192, 0.1); }
+        .resize-handle { position: absolute; right: -10px; bottom: -10px; width: 20px; height: 20px; background-color: var(--user-color); border: 2px solid white; border-radius: 50%; cursor: se-resize; pointer-events: auto; }
+        #dpad-container { display: grid; grid-template-areas: ". up ." "left . right" ". down ."; gap: 16px; place-items: center; }
+        #dpad-container button { border-radius: 8px; background-color: #002222; border: 2px solid #0ff; box-shadow: 0 0 8px #0ff; color: #0ff; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.1s ease; }
+        #dpad-container button.up { grid-area: up; }
+        #dpad-container button.down { grid-area: down; }
+        #dpad-container button.left { grid-area: left; }
+        #dpad-container button.right { grid-area: right; }
+        #action-controls-container { display: flex; align-items: center; gap: 1rem; }
+        .action-buttons-layout { display: flex; flex-direction: column; gap: 10px; }
+        .action-btn { border-radius: 9999px; background-color: #002222; border: 2px solid #0ff; box-shadow: 0 0 8px #0ff; color: #0ff; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
+        .pause-action-btn { border-radius: 50%; background-color: var(--mcp-color); border: 2px solid var(--mcp-color); box-shadow: 0 0 8px var(--mcp-color); color: var(--dark-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
+        #swipe-pad { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: rgba(0, 192, 192, 0.3); text-shadow: 0 0 5px rgba(0, 192, 192, 0.5); pointer-events: auto; }
+        .ph { font-family: 'Phosphor-Regular', sans-serif; line-height: 1; }
+        #boost-meter-container { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); width: 250px; height: 10px; background-color: #333; border-radius: 5px; border: 1px solid #555; overflow: hidden; z-index: 5; }
+        #boost-meter-bar { width: 100%; height: 100%; background-color: var(--user-color); border-radius: 5px; transition: width 0.1s linear; }
+        #layout-editor-overlay { z-index: 30; }
+        .layout-editor-controls { position: absolute; top: 1rem; display: flex; gap: 1rem; pointer-events: auto; }
+    </style>
+</head>
+<body>
+    <div id="main-game-container" class="game-container">
+        <!-- Game display section -->
+        <div id="game-display-section" class="game-display-section">
+            <div id="game-board"><canvas id="gameCanvas"></canvas></div>
+            <div class="score-container">
+                <span class="user-score">USER: <span id="userScore">0</span></span>
+                <span class="mcp-score">MCP: <span id="mcpScore">0</span></span>
+            </div>
+            <div id="boost-meter-container"><div id="boost-meter-bar"></div></div>
+            <!-- Game Menus -->
+            <div id="gameMenu" class="game-overlay"><div class="game-overlay-content"><h1>LIGHTCYCLES</h1><h2>Single Player vs. MCP</h2><p>Choose your control method:</p><div class="flex flex-col sm:flex-row"><button id="controls-keyboard" class="game-button">Keyboard</button><button id="controls-buttons" class="game-button">Buttons</button><button id="controls-swipe" class="game-button">Swipe</button></div><button id="open-layout-editor-btn" class="game-button mt-4">Edit Layout</button></div></div>
+            <div id="gameOverScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1 id="gameOverMessage">&lt;&lt;END OF LINE&gt;&gt;</h1><h2 id="winnerMessage" class="mt-4"></h2><div class="game-over-buttons"><button id="playAgainButton" class="game-button">Play Again</button><button id="restartGameButton" class="game-button">Restart</button></div></div></div>
+            <div id="countdown" class="game-overlay hidden"><div id="countdown-display"></div></div>
+            <div id="pausedScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1>PAUSED</h1></div></div>
+        </div>
+
+        <!-- Mobile controls section -->
+        <div id="controls-container" class="controls-container hidden">
+            <div id="buttons-layout" class="mobile-controls-layout hidden">
+                <div id="dpad-container" class="draggable"><button id="up-btn" class="up"><i class="ph ph-caret-up"></i></button><button id="down-btn" class="down"><i class="ph ph-caret-down"></i></button><button id="left-btn" class="left"><i class="ph ph-caret-left"></i></button><button id="right-btn" class="right"><i class="ph ph-caret-right"></i></button><div class="resize-handle"></div></div>
+                <div id="action-controls-container" class="draggable"><div class="action-buttons-layout"><button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button><button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button></div><button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button><div class="resize-handle"></div></div>
+            </div>
+            <div id="swipe-layout" class="mobile-controls-layout hidden"><div id="swipe-pad"><p>SWIPE ANYWHERE HERE</p></div></div>
+            <!-- Layout Editor Overlay -->
+            <div id="layout-editor-overlay" class="game-overlay hidden"><h2>Drag, drop, and resize to customize your layout</h2><div class="layout-editor-controls"><button id="save-layout-btn" class="game-button">Save</button><button id="reset-layout-btn" class="game-button">Reset</button><button id="exit-layout-btn" class="game-button">Exit</button></div></div>
+        </div>
+    </div>
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL VARIABLES & CONSTANTS ---
+        const GRID_SIZE = 10;
+        const BASE_TICK_INTERVAL = 54;
+        const SWIPE_THRESHOLD = 30;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let db, auth, userId;
+        let gameLoopId, isGameOver = true, gamePaused = false;
+        let userScore = 0, mcpScore = 0;
+        let lastControlScheme = 'keyboard';
+        let allTrails, user, mcp;
+
+        // --- DOM ELEMENT CACHE ---
+        const DOMElements = {
+            mainContainer: document.getElementById('main-game-container'),
+            gameDisplay: document.getElementById('game-display-section'),
+            controlsContainer: document.getElementById('controls-container'),
+            buttonsLayout: document.getElementById('buttons-layout'),
+            swipeLayout: document.getElementById('swipe-layout'),
+            gameBoard: document.getElementById('game-board'),
+            canvas: document.getElementById('gameCanvas'),
+            gameMenu: document.getElementById('gameMenu'),
+            gameOverScreen: document.getElementById('gameOverScreen'),
+            winnerMessage: document.getElementById('winnerMessage'),
+            countdownOverlay: document.getElementById('countdown'),
+            countdownDisplay: document.getElementById('countdown-display'),
+            pausedScreen: document.getElementById('pausedScreen'),
+            boostMeterBar: document.getElementById('boost-meter-bar'),
+            layoutEditor: {
+                overlay: document.getElementById('layout-editor-overlay'),
+                dpad: document.getElementById('dpad-container'),
+                actions: document.getElementById('action-controls-container')
+            }
+        };
+        const ctx = DOMElements.canvas.getContext('2d');
+
+        // --- PLAYER OBJECT FACTORY ---
+        const createPlayer = (x, y, dx, dy, color) => ({
+            x, y, dx, dy, color, trail: [{ x, y }], isBoosting: false, isBraking: false,
+            ticksSinceLastMove: 0, boostFuel: 100, BOOST_COST: 1.5, FUEL_REGEN: 0.25,
+        });
+
+        // --- UTILITY FUNCTIONS ---
+        const updateElementVisibility = (el, isVisible) => el?.classList.toggle('hidden', !isVisible);
+        const displayScores = () => {
+            document.getElementById('userScore').textContent = userScore;
+            document.getElementById('mcpScore').textContent = mcpScore;
+        };
+        const resizeCanvas = () => {
+            const rect = DOMElements.gameBoard.getBoundingClientRect();
+            let size = Math.min(rect.width, rect.height) - 4;
+            DOMElements.canvas.width = DOMElements.canvas.height = Math.floor(size / GRID_SIZE) * GRID_SIZE;
+            if (!isGameOver) drawGame();
+        };
+
+        // --- FIREBASE FUNCTIONS ---
+        async function setupFirebase() {
+            if (!firebaseConfig || Object.keys(firebaseConfig).length === 0) return;
+            try {
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                initialAuthToken ? await signInWithCustomToken(auth, initialAuthToken) : await signInAnonymously(auth);
+                userId = auth.currentUser?.uid;
+                const scoresDocRef = doc(db, `artifacts/${appId}/users/${userId}/lightcyclesGame`, "scores");
+                onSnapshot(scoresDocRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        userScore = data.userScore || 0;
+                        mcpScore = data.mcpScore || 0;
+                        displayScores();
+                    }
+                });
+                const docSnap = await getDoc(scoresDocRef);
+                if (!docSnap.exists()) await setDoc(scoresDocRef, { userScore: 0, mcpScore: 0 });
+            } catch (error) { console.error("Firebase init failed:", error); }
+        }
+        async function saveScores() {
+            if (!userId || !db) return;
+            try {
+                await setDoc(doc(db, `artifacts/${appId}/users/${userId}/lightcyclesGame`, "scores"), { userScore, mcpScore });
+            } catch (error) { console.error("Error saving scores:", error); }
+        }
+
+        // --- GAME LOGIC ---
+        function startGame(controlScheme) {
+            lastControlScheme = controlScheme;
+            isGameOver = true;
+            updateElementVisibility(DOMElements.gameMenu, false);
+            updateElementVisibility(DOMElements.gameOverScreen, false);
+            updateElementVisibility(DOMElements.pausedScreen, false);
+
+            const isKeyboard = controlScheme === 'keyboard';
+            DOMElements.mainContainer.classList.toggle('full-screen-game', isKeyboard);
+            updateElementVisibility(DOMElements.controlsContainer, !isKeyboard);
+            if (!isKeyboard) {
+                updateElementVisibility(DOMElements.buttonsLayout, controlScheme === 'buttons');
+                updateElementVisibility(DOMElements.swipeLayout, controlScheme === 'swipe');
+                if(controlScheme === 'buttons') layoutManager.apply();
+            }
+            
+            setTimeout(() => {
+                resizeCanvas();
+                startNewCountdown();
+            }, 50);
+        }
+
+        function startNewCountdown() {
+            updateElementVisibility(DOMElements.countdownOverlay, true);
+            DOMElements.countdownDisplay.textContent = "Ready?";
+            setTimeout(() => { DOMElements.countdownDisplay.textContent = "Game On!"; }, 1000);
+            setTimeout(() => {
+                updateElementVisibility(DOMElements.countdownOverlay, false);
+                initRound();
+            }, 2000);
+        }
+
+        function initRound() {
+            isGameOver = false;
+            gamePaused = false;
+            ctx.clearRect(0, 0, DOMElements.canvas.width, DOMElements.canvas.height);
+            const midY = Math.floor(DOMElements.canvas.height / 2 / GRID_SIZE) * GRID_SIZE;
+            
+            // *** FIX: Resolve CSS variables to actual color values for the canvas ***
+            const computedStyle = getComputedStyle(DOMElements.mainContainer);
+            const userColorValue = computedStyle.getPropertyValue('--user-color').trim();
+            const mcpColorValue = computedStyle.getPropertyValue('--mcp-color').trim();
+
+            user = createPlayer(GRID_SIZE * 5, midY, GRID_SIZE, 0, userColorValue);
+            mcp = createPlayer(DOMElements.canvas.width - GRID_SIZE * 6, midY, -GRID_SIZE, 0, mcpColorValue);
+            
+            allTrails = new Set([`${user.x},${user.y}`, `${mcp.x},${mcp.y}`]);
+            if (gameLoopId) clearInterval(gameLoopId);
+            gameLoopId = setInterval(gameTick, BASE_TICK_INTERVAL);
+            drawGame();
+        }
+
+        const gameTick = () => !gamePaused && !isGameOver && (updateGame(), drawGame());
+
+        function updateGame() {
+            // User Movement
+            const userSpeed = (user.isBoosting && user.boostFuel > 0) ? 2 : 1;
+            let shouldMove = !(user.isBraking && user.ticksSinceLastMove++ % 2 !== 0);
+            if(!user.isBraking) user.ticksSinceLastMove = 0;
+            
+            if (shouldMove) {
+                for (let i = 0; i < userSpeed; i++) {
+                    const next = { x: user.x + user.dx, y: user.y + user.dy };
+                    if (checkCollision(next.x, next.y)) return endRound("mcp");
+                    Object.assign(user, next);
+                    user.trail.push({ ...user });
+                    allTrails.add(`${user.x},${user.y}`);
+                }
+            }
+            // MCP Movement
+            updateMcpDirection();
+            const mcpNext = { x: mcp.x + mcp.dx, y: mcp.y + mcp.dy };
+            if (checkCollision(mcpNext.x, mcpNext.y)) return endRound("user");
+            Object.assign(mcp, mcpNext);
+            mcp.trail.push({ ...mcp });
+            allTrails.add(`${mcp.x},${mcp.y}`);
+            // Fuel
+            if (user.isBoosting && user.boostFuel > 0) user.boostFuel = Math.max(0, user.boostFuel - user.BOOST_COST);
+            else if (user.boostFuel < 100) user.boostFuel = Math.min(100, user.boostFuel + user.FUEL_REGEN);
+            DOMElements.boostMeterBar.style.width = `${user.boostFuel}%`;
+        }
+
+        const checkCollision = (x, y) => x < 0 || x >= DOMElements.canvas.width || y < 0 || y >= DOMElements.canvas.height || allTrails.has(`${x},${y}`);
+
+        function updateMcpDirection() {
+            if (!checkCollision(mcp.x + mcp.dx, mcp.y + mcp.dy)) return;
+            const moves = [{ dx: 0, dy: -GRID_SIZE }, { dx: 0, dy: GRID_SIZE }, { dx: -GRID_SIZE, dy: 0 }, { dx: GRID_SIZE, dy: 0 }]
+                .filter(d => !(d.dx === -mcp.dx && d.dy === -mcp.dy) && !checkCollision(mcp.x + d.dx, mcp.y + d.dy));
+            if (moves.length === 0) return;
+            const bestMove = moves.reduce((best, move) => {
+                const score = (1000 / Math.hypot(mcp.x + move.dx - user.x, mcp.y + move.dy - user.y)) + (Math.random() * 20);
+                return score > best.score ? { move, score } : best;
+            }, { move: moves[0], score: -Infinity });
+            Object.assign(mcp, bestMove.move);
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, DOMElements.canvas.width, DOMElements.canvas.height);
+            ctx.shadowBlur = 15;
+            DOMElements.canvas.style.borderColor = user.isBoosting ? '#00ff00' : user.isBraking ? '#ff0000' : 'var(--user-color)';
+            DOMElements.canvas.style.boxShadow = `0 0 20px 5px ${DOMElements.canvas.style.borderColor}`;
+            [user, mcp].forEach(p => {
+                ctx.fillStyle = ctx.shadowColor = p.color;
+                p.trail.forEach(t => ctx.fillRect(t.x, t.y, GRID_SIZE, GRID_SIZE));
+            });
+            ctx.shadowBlur = 0;
+        }
+
+        function endRound(winner) {
+            clearInterval(gameLoopId);
+            isGameOver = true;
+            if (winner === "user") { userScore++; DOMElements.winnerMessage.textContent = "USER WINS"; DOMElements.winnerMessage.style.color = 'var(--user-color)'; }
+            else { mcpScore++; DOMElements.winnerMessage.textContent = "MCP WINS"; DOMElements.winnerMessage.style.color = 'var(--mcp-color)'; }
+            displayScores();
+            saveScores();
+            updateElementVisibility(DOMElements.gameOverScreen, true);
+        }
+
+        function togglePause() {
+            if (isGameOver) return;
+            gamePaused = !gamePaused;
+            updateElementVisibility(DOMElements.pausedScreen, gamePaused);
+            if (gamePaused) clearInterval(gameLoopId);
+            else gameLoopId = setInterval(gameTick, BASE_TICK_INTERVAL);
+        }
+
+        // --- INPUT HANDLING ---
+        const InputManager = {
+            touchStart: { x: 0, y: 0 },
+            init() {
+                // Keyboard
+                document.addEventListener('keydown', this.handleKeyDown.bind(this));
+                document.addEventListener('keyup', this.handleKeyUp.bind(this));
+                // Touch
+                DOMElements.swipeLayout.addEventListener('touchstart', this.handleTouchStart.bind(this), { passive: false });
+                DOMElements.swipeLayout.addEventListener('touchend', this.handleTouchEnd.bind(this), { passive: false });
+                // Button Clicks
+                document.getElementById('controls-keyboard').addEventListener('click', () => startGame('keyboard'));
+                document.getElementById('controls-buttons').addEventListener('click', () => startGame('buttons'));
+                document.getElementById('controls-swipe').addEventListener('click', () => startGame('swipe'));
+                document.getElementById('playAgainButton').addEventListener('click', () => startGame(lastControlScheme));
+                document.getElementById('restartGameButton').addEventListener('click', () => { userScore = 0; mcpScore = 0; saveScores(); updateElementVisibility(DOMElements.gameOverScreen, false); updateElementVisibility(DOMElements.gameMenu, true); });
+                document.getElementById('pauseButton').addEventListener('click', togglePause);
+                // Button Touch
+                this.setupButtonTouch('up-btn', () => this.setDirection('up'));
+                this.setupButtonTouch('down-btn', () => this.setDirection('down'));
+                this.setupButtonTouch('left-btn', () => this.setDirection('left'));
+                this.setupButtonTouch('right-btn', () => this.setDirection('right'));
+                this.setupActionTouch('boost-btn', 'isBoosting');
+                this.setupActionTouch('brake-btn', 'isBraking');
+            },
+            setupButtonTouch(id, action) { document.getElementById(id)?.addEventListener('touchstart', e => { e.preventDefault(); if (!isGameOver && !gamePaused) action(); }, { passive: false }); },
+            setupActionTouch(id, flag) {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.addEventListener('touchstart', e => { e.preventDefault(); if (!isGameOver && !gamePaused) user[flag] = true; }, { passive: false });
+                btn.addEventListener('touchend', e => { e.preventDefault(); user[flag] = false; }, { passive: false });
+                btn.addEventListener('touchcancel', e => { e.preventDefault(); user[flag] = false; }, { passive: false });
+            },
+            handleKeyDown(e) {
+                if (e.key.toLowerCase() === 'p') return togglePause();
+                if (isGameOver || gamePaused || lastControlScheme !== 'keyboard') return;
+                switch (e.key.toLowerCase()) {
+                    case "arrowup": case "w": this.setDirection('up'); break;
+                    case "arrowdown": case "s": this.setDirection('down'); break;
+                    case "arrowleft": case "a": this.setDirection('left'); break;
+                    case "arrowright": case "d": this.setDirection('right'); break;
+                    case " ": user.isBoosting = true; break;
+                    case "control": e.preventDefault(); user.isBraking = true; break;
+                }
+            },
+            handleKeyUp(e) {
+                if (lastControlScheme !== 'keyboard') return;
+                if (e.key === " ") user.isBoosting = false;
+                if (e.key === "Control") user.isBraking = false;
+            },
+            handleTouchStart(e) {
+                if (isGameOver || gamePaused) return;
+                e.preventDefault();
+                this.touchStart.x = e.touches[0].clientX;
+                this.touchStart.y = e.touches[0].clientY;
+            },
+            handleTouchEnd(e) {
+                if (isGameOver || gamePaused) return;
+                e.preventDefault();
+                const dX = e.changedTouches[0].clientX - this.touchStart.x;
+                const dY = e.changedTouches[0].clientY - this.touchStart.y;
+                if (Math.abs(dX) > Math.abs(dY) && Math.abs(dX) > SWIPE_THRESHOLD) this.setDirection(dX > 0 ? 'right' : 'left');
+                else if (Math.abs(dY) > SWIPE_THRESHOLD) this.setDirection(dY > 0 ? 'down' : 'up');
+            },
+            setDirection(dir) {
+                if (user.dx !== 0 && (dir === 'left' || dir === 'right')) return;
+                if (user.dy !== 0 && (dir === 'up' || dir === 'down')) return;
+                const DIRS = { up: { dx: 0, dy: -GRID_SIZE }, down: { dx: 0, dy: GRID_SIZE }, left: { dx: -GRID_SIZE, dy: 0 }, right: { dx: GRID_SIZE, dy: 0 } };
+                Object.assign(user, DIRS[dir]);
+            }
+        };
+
+        // --- LAYOUT EDITOR ---
+        const layoutManager = {
+            activeEl: null, isResizing: false,
+            initialMouse: { x: 0, y: 0 },
+            initialRect: { x: 0, y: 0, width: 0, height: 0 },
+            defaults: {
+                dpad: { left: '2rem', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
+                actions: { right: '2rem', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' }
+            },
+            init() {
+                document.getElementById('open-layout-editor-btn').addEventListener('click', () => this.open());
+                document.getElementById('save-layout-btn').addEventListener('click', () => this.save());
+                document.getElementById('reset-layout-btn').addEventListener('click', () => this.reset());
+                document.getElementById('exit-layout-btn').addEventListener('click', () => this.close());
+                DOMElements.controlsContainer.addEventListener('mousedown', this.startDrag.bind(this));
+                document.addEventListener('mousemove', this.drag.bind(this));
+                document.addEventListener('mouseup', this.endDrag.bind(this));
+                DOMElements.controlsContainer.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
+                document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
+                document.addEventListener('touchend', this.endDrag.bind(this));
+            },
+            open() {
+                updateElementVisibility(DOMElements.layoutEditor.overlay, true);
+                DOMElements.buttonsLayout.classList.add('layout-editor-mode');
+                this.apply();
+            },
+            close() {
+                updateElementVisibility(DOMElements.layoutEditor.overlay, false);
+                DOMElements.buttonsLayout.classList.remove('layout-editor-mode');
+            },
+            save() {
+                ['dpad', 'actions'].forEach(id => {
+                    const el = DOMElements.layoutEditor[id];
+                    const rect = { top: el.offsetTop, left: el.offsetLeft, width: el.offsetWidth, height: el.offsetHeight };
+                    localStorage.setItem(`layout_${id}`, JSON.stringify(rect));
+                });
+                this.close();
+            },
+            reset() {
+                localStorage.removeItem('layout_dpad');
+                localStorage.removeItem('layout_actions');
+                this.apply();
+            },
+            apply() {
+                this.applyStyle('dpad');
+                this.applyStyle('actions');
+            },
+            applyStyle(id) {
+                const el = DOMElements.layoutEditor[id];
+                const saved = JSON.parse(localStorage.getItem(`layout_${id}`));
+                const def = this.defaults[id];
+                Object.keys(def).forEach(key => el.style[key] = saved ? 'auto' : def[key]);
+                if (saved) {
+                    el.style.left = `${saved.left}px`;
+                    el.style.top = `${saved.top}px`;
+                    el.style.width = `${saved.width}px`;
+                    el.style.height = `${saved.height}px`;
+                    el.style.transform = 'none';
+                }
+                this.updateControlSizes(el, saved ? saved.width : parseInt(def.width));
+            },
+            updateControlSizes(el, newWidth) {
+                if (el.id.includes('dpad')) {
+                    const btnSize = newWidth / 3.5;
+                    el.querySelectorAll('button').forEach(btn => {
+                        btn.style.width = btn.style.height = `${btnSize}px`;
+                        btn.style.fontSize = `${btnSize * 0.5}px`;
+                    });
+                } else {
+                    const pauseSize = newWidth / 2;
+                    const actionHeight = el.offsetHeight - pauseSize - 10;
+                    const actionBtn = el.querySelector('.action-btn');
+                    const pauseBtn = el.querySelector('.pause-action-btn');
+                    el.querySelector('.action-buttons-layout').style.height = `${actionHeight}px`;
+                    [actionBtn, pauseBtn].forEach(btn => {
+                        if(!btn) return;
+                        btn.style.width = btn.style.height = `${pauseSize}px`;
+                        btn.style.fontSize = `${pauseSize * 0.15}px`;
+                        btn.querySelector('span').style.fontSize = `${pauseSize * 0.4}px`;
+                    });
+                }
+            },
+            startDrag(e) {
+                this.activeEl = e.target.closest('.draggable');
+                if (!this.activeEl) return;
+                e.preventDefault();
+                this.isResizing = e.target.classList.contains('resize-handle');
+                const touch = e.touches ? e.touches[0] : e;
+                this.initialMouse = { x: touch.clientX, y: touch.clientY };
+                this.initialRect = { x: this.activeEl.offsetLeft, y: this.activeEl.offsetTop, width: this.activeEl.offsetWidth, height: this.activeEl.offsetHeight };
+                this.activeEl.style.transform = 'none';
+            },
+            drag(e) {
+                if (!this.activeEl) return;
+                e.preventDefault();
+                const touch = e.touches ? e.touches[0] : e;
+                const dX = touch.clientX - this.initialMouse.x;
+                const dY = touch.clientY - this.initialMouse.y;
+                if (this.isResizing) {
+                    const newWidth = Math.max(100, this.initialRect.width + dX);
+                    this.activeEl.style.width = `${newWidth}px`;
+                    this.activeEl.style.height = `${this.initialRect.height * (newWidth / this.initialRect.width)}px`; // Maintain aspect ratio
+                    this.updateControlSizes(this.activeEl, newWidth);
+                } else {
+                    this.activeEl.style.left = `${this.initialRect.x + dX}px`;
+                    this.activeEl.style.top = `${this.initialRect.y + dY}px`;
+                }
+            },
+            endDrag() { this.activeEl = null; }
+        };
+
+        // --- SERVICE WORKER REGISTRATION ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered with scope: ', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Service Worker registration failed: ', error);
+                    });
+            });
+        }
+        
+        // --- INITIALIZATION ---
+        async function init() {
+            displayScores();
+            await setupFirebase();
+            InputManager.init();
+            layoutManager.init();
+            window.addEventListener('resize', resizeCanvas);
+            updateElementVisibility(DOMElements.gameMenu, true);
+            resizeCanvas();
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
