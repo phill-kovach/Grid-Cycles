@@ -50,9 +50,12 @@
         .game-button { padding: 0.75rem 2.5rem; font-size: 1.5rem; font-weight: 700; color: var(--dark-bg); background-color: var(--user-color); border: none; border-radius: 9999px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 192, 192, 0.5); transition: all 0.2s ease-in-out; text-transform: uppercase; letter-spacing: 1px; margin: 0.5rem; }
         .game-button:hover { background-color: #00e0e0; box-shadow: 0 6px 18px rgba(0, 192, 192, 0.7); transform: translateY(-2px); }
         .hidden { display: none !important; }
-        .score-container { position: absolute; top: 30px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; font-size: 2rem; font-weight: 700; white-space: nowrap; z-index: 5; }
+        /* Adjusted styles for the scoreboard and boost bar to be more compact */
+        .score-container { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; justify-content: center; font-size: 1.5rem; font-weight: 700; white-space: nowrap; z-index: 5; }
         .user-score { color: var(--user-color); text-shadow: 0 0 5px var(--user-color); }
         .mcp-score { color: var(--mcp-color); text-shadow: 0 0 5px var(--mcp-color); }
+        #boost-meter-container { position: absolute; top: 45px; left: 50%; transform: translateX(-50%); width: 200px; height: 8px; background-color: #333; border-radius: 5px; border: 1px solid #555; overflow: hidden; z-index: 5; }
+        #boost-meter-bar { width: 100%; height: 100%; background-color: var(--user-color); border-radius: 5px; transition: width 0.1s linear; }
         #countdown-display { font-size: 10rem; font-weight: bold; color: white; text-shadow: 0 0 20px var(--user-color); position: absolute; }
         .mobile-controls-layout { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .draggable { position: absolute; cursor: grab; transition: none !important; pointer-events: auto; display: flex; justify-content: center; align-items: center; }
@@ -71,8 +74,6 @@
         .pause-action-btn { border-radius: 50%; background-color: var(--mcp-color); border: 2px solid var(--mcp-color); box-shadow: 0 0 8px var(--mcp-color); color: var(--dark-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
         #swipe-pad { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: rgba(0, 192, 192, 0.3); text-shadow: 0 0 5px rgba(0, 192, 192, 0.5); pointer-events: auto; }
         .ph { font-family: 'Phosphor-Regular', sans-serif; line-height: 1; }
-        #boost-meter-container { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); width: 250px; height: 10px; background-color: #333; border-radius: 5px; border: 1px solid #555; overflow: hidden; z-index: 5; }
-        #boost-meter-bar { width: 100%; height: 100%; background-color: var(--user-color); border-radius: 5px; transition: width 0.1s linear; }
         /* Style for the layout editor UI */
         #layout-editor-overlay {
             position: absolute;
@@ -167,8 +168,8 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- GLOBAL VARIABLES & CONSTANTS ---
-        const GRID_SIZE = 10;
-        const BASE_TICK_INTERVAL = 54;
+        const GRID_SIZE = 8; // Reduced by 20%
+        const BASE_TICK_INTERVAL = 72; // Increased by ~25%
         const SWIPE_THRESHOLD = 30;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
