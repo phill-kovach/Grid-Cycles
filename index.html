@@ -116,8 +116,47 @@
             align-items: center;
             gap: 16px;
         }
-        .action-btn { border-radius: 9999px; background-color: #002222; border: 2px solid #0ff; box-shadow: 0 0 8px #0ff; color: #0ff; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
-        .pause-action-btn { border-radius: 50%; background-color: var(--mcp-color); border: 2px solid var(--mcp-color); box-shadow: 0 0 8px var(--mcp-color); color: var(--dark-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
+        /* Updated action button styles */
+        .action-btn {
+            border-radius: 50%;
+            width: 75px; 
+            height: 75px; 
+            background-color: #002222;
+            border: 2px solid #0ff;
+            box-shadow: 0 0 8px #0ff;
+            color: #0ff;
+            display: flex;
+            flex-direction: row; /* Horizontal alignment for icon and text */
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 700;
+            transition: all 0.1s ease;
+            line-height: 1;
+            font-size: 10px;
+            gap: 4px;
+        }
+        /* Updated pause button styles */
+        .pause-action-btn {
+            border-radius: 50%;
+            width: 100px;
+            height: 100px;
+            background-color: var(--mcp-color);
+            border: 2px solid var(--mcp-color);
+            box-shadow: 0 0 8px var(--mcp-color);
+            color: var(--dark-bg);
+            display: flex;
+            flex-direction: column; /* Vertical alignment for icon and text */
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 700;
+            transition: all 0.1s ease;
+            line-height: 1;
+            font-size: 14px;
+        }
         #swipe-pad { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: rgba(0, 192, 192, 0.3); text-shadow: 0 0 5px rgba(0, 192, 192, 0.5); pointer-events: auto; }
         .ph { font-family: 'Phosphor-Regular', sans-serif; line-height: 1; }
         /* Style for the layout editor UI */
@@ -585,7 +624,7 @@
                         btn.style.width = btn.style.height = `${btnSize}px`;
                         btn.style.fontSize = `${btnSize * 0.5}px`;
                     });
-                } else if (el.id.includes('actions')) {
+                } /* else if (el.id.includes('actions')) {
                     // This section is for the action controls
                     const containerWidth = el.offsetWidth;
                     // Calculate a consistent button size for all three action buttons
@@ -601,7 +640,7 @@
                             iconSpan.style.fontSize = `${btnSize * 0.4}px`;
                         }
                     });
-                } else if (el.id === 'scoreboard-and-boost') {
+                } */ else if (el.id === 'scoreboard-and-boost') {
                     // This section is for the scoreboard
                     const scoreContainer = el.querySelector('.score-container');
                     const boostMeter = el.querySelector('#boost-meter-container');
