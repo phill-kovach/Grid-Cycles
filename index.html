@@ -51,9 +51,11 @@
         .game-button { padding: 0.75rem 2.5rem; font-size: 1.5rem; font-weight: 700; color: var(--dark-bg); background-color: var(--user-color); border: none; border-radius: 9999px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 192, 192, 0.5); transition: all 0.2s ease-in-out; text-transform: uppercase; letter-spacing: 1px; margin: 0.5rem; }
         .game-button:hover { background-color: #00e0e0; box-shadow: 0 6px 18px rgba(0, 192, 192, 0.7); transform: translateY(-2px); }
         .hidden { display: none !important; }
-        /* Fixed scoreboard position at the top of the controls area */
-        #scoreboard-and-boost {
-            position: relative; /* Changed from absolute to relative */
+        /* Style for the scoreboard in the top-right for keyboard mode */
+        .scoreboard-keyboard-mode {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -62,8 +64,7 @@
             padding: 0.5rem;
             box-shadow: 0 0 10px var(--user-color);
             background-color: rgba(18, 18, 18, 0.8);
-            z-index: 5;
-            margin-bottom: 1rem; /* Add margin to separate from controls */
+            z-index: 50; /* Ensure it's on top of everything */
         }
         .score-container {
             display: flex;
@@ -189,6 +190,17 @@
 </head>
 <body>
     <div id="main-game-container" class="game-container">
+        <!-- Scoreboard and Boost meter -->
+        <div id="scoreboard-and-boost">
+            <div class="score-container">
+                <span class="user-score">USER: <span id="userScore">0</span></span>
+                <span class="mcp-score">MCP: <span id="mcpScore">0</span></span>
+            </div>
+            <div id="boost-meter-container">
+                <div id="boost-meter-bar"></div>
+            </div>
+        </div>
+
         <!-- Game display section -->
         <div id="game-display-section" class="game-display-section">
             <div id="game-board"><canvas id="gameCanvas"></canvas></div>
@@ -210,17 +222,6 @@
 
         <!-- Mobile controls section -->
         <div id="controls-container" class="controls-container hidden">
-            <!-- Scoreboard and Boost meter -->
-            <!-- Removed the 'draggable' class and the resize handle -->
-            <div id="scoreboard-and-boost">
-                <div class="score-container">
-                    <span class="user-score">USER: <span id="userScore">0</span></span>
-                    <span class="mcp-score">MCP: <span id="mcpScore">0</span></span>
-                </div>
-                <div id="boost-meter-container">
-                    <div id="boost-meter-bar"></div>
-                </div>
-            </div>
             <div id="buttons-layout" class="mobile-controls-layout hidden">
                 <!-- D-Pad buttons -->
                 <div id="dpad-container" class="draggable"><button id="up-btn" class="up"><i class="ph ph-caret-up"></i></button><button id="down-btn" class="down"><i class="ph ph-caret-down"></i></button><button id="left-btn" class="left"><i class="ph ph-caret-left"></i></button><button id="right-btn" class="right"><i class="ph ph-caret-right"></i></button><div class="resize-handle"></div></div>
@@ -271,11 +272,11 @@
             countdownDisplay: document.getElementById('countdown-display'),
             pausedScreen: document.getElementById('pausedScreen'),
             boostMeterBar: document.getElementById('boost-meter-bar'),
+            scoreboard: document.getElementById('scoreboard-and-boost'),
             layoutEditor: {
                 overlay: document.getElementById('layout-editor-overlay'),
                 dpad: document.getElementById('dpad-container'),
                 actions: document.getElementById('action-controls-container'),
-                scoreboard: document.getElementById('scoreboard-and-boost'),
             }
         };
         const ctx = DOMElements.canvas.getContext('2d');
@@ -339,7 +340,14 @@
             const isKeyboard = controlScheme === 'keyboard';
             DOMElements.mainContainer.classList.toggle('full-screen-game', isKeyboard);
             updateElementVisibility(DOMElements.controlsContainer, !isKeyboard);
-            if (!isKeyboard) {
+            
+            // Move scoreboard based on control scheme
+            if (isKeyboard) {
+                DOMElements.gameDisplay.appendChild(DOMElements.scoreboard);
+                DOMElements.scoreboard.classList.add('scoreboard-keyboard-mode');
+            } else {
+                DOMElements.controlsContainer.prepend(DOMElements.scoreboard);
+                DOMElements.scoreboard.classList.remove('scoreboard-keyboard-mode');
                 updateElementVisibility(DOMElements.buttonsLayout, controlScheme === 'buttons');
                 updateElementVisibility(DOMElements.swipeLayout, controlScheme === 'swipe');
                 layoutManager.apply();
