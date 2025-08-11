@@ -39,7 +39,8 @@
         .game-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background-color: var(--medium-bg); }
         .game-display-section { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; position: relative; min-height: 0; height: 50vh; }
         .full-screen-game .game-display-section { height: 100%; padding: 0; }
-        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: var(--medium-bg); border-top: 4px solid #111; padding: 1rem 0; height: 50vh; }
+        /* Updated styles to make the control area seamless with the game area */
+        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: var(--medium-bg); border-top: 4px solid var(--dark-bg); padding: 1rem 0; height: 50vh; }
         #game-board { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         #gameCanvas { background-color: var(--light-bg); border: 2px solid var(--user-color); box-shadow: 0 0 20px 5px var(--user-color); transition: all 0.5s ease-in-out; border-radius: 8px; }
         .game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; transition: opacity 0.5s ease-in-out; z-index: 20; }
@@ -50,17 +51,18 @@
         .game-button { padding: 0.75rem 2.5rem; font-size: 1.5rem; font-weight: 700; color: var(--dark-bg); background-color: var(--user-color); border: none; border-radius: 9999px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 192, 192, 0.5); transition: all 0.2s ease-in-out; text-transform: uppercase; letter-spacing: 1px; margin: 0.5rem; }
         .game-button:hover { background-color: #00e0e0; box-shadow: 0 6px 18px rgba(0, 192, 192, 0.7); transform: translateY(-2px); }
         .hidden { display: none !important; }
-        /* Adjusted styles for the scoreboard and boost bar to be more compact */
+        /* Adjusted styles for the scoreboard and boost bar to be more compact and overlap with the canvas */
         #scoreboard-and-boost {
             position: absolute;
-            top: 1rem;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
+            transform: translate(-50%, -100%); /* Position and then move up by 100% of its own height */
             display: flex;
             flex-direction: column;
             align-items: center;
             border: 2px solid var(--user-color);
-            border-radius: 8px;
+            border-bottom: none; /* Removed the bottom border for seamless look */
+            border-radius: 8px 8px 0 0; /* Only top corners are rounded */
             padding: 0.5rem;
             box-shadow: 0 0 10px var(--user-color);
             background-color: rgba(18, 18, 18, 0.8);
@@ -86,7 +88,17 @@
             margin-top: 0.5rem;
         }
         #boost-meter-bar { width: 100%; height: 100%; background-color: var(--user-color); border-radius: 5px; transition: width 0.1s linear; }
-        #countdown-display { font-size: 10rem; font-weight: bold; color: white; text-shadow: 0 0 20px var(--user-color); position: absolute; }
+        /* Centered countdown display and removed the surrounding box */
+        #countdown-display { 
+            font-size: 10rem; 
+            font-weight: bold; 
+            color: white; 
+            text-shadow: 0 0 20px var(--user-color); 
+            position: absolute; 
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
         .mobile-controls-layout { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         .draggable { position: absolute; cursor: grab; transition: none !important; pointer-events: auto; display: flex; justify-content: center; align-items: center; }
         .draggable:active { cursor: grabbing; }
@@ -155,12 +167,13 @@
             <!-- Game Menus -->
             <div id="gameMenu" class="game-overlay"><div class="game-overlay-content"><h1>LIGHTCYCLES</h1><h2>Single Player vs. MCP</h2><p>Choose your control method:</p><div class="flex flex-col sm:flex-row"><button id="controls-keyboard" class="game-button">Keyboard</button><button id="controls-buttons" class="game-button">Buttons</button><button id="controls-swipe" class="game-button">Swipe</button></div><button id="open-layout-editor-btn" class="game-button mt-4">Edit Layout</button></div></div>
             <div id="gameOverScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1 id="gameOverMessage">&lt;&lt;END OF LINE&gt;&gt;</h1><h2 id="winnerMessage" class="mt-4"></h2><div class="game-over-buttons"><button id="playAgainButton" class="game-button">Play Again</button><button id="restartGameButton" class="game-button">Restart</button></div></div></div>
-            <div id="countdown" class="game-overlay hidden"><div class="game-overlay-content"><div id="countdown-display"></div></div></div>
+            <div id="countdown" class="game-overlay hidden"><div id="countdown-display"></div></div>
             <div id="pausedScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1>PAUSED</h1></div></div>
         </div>
 
         <!-- Mobile controls section -->
         <div id="controls-container" class="controls-container hidden">
+            <!-- Scoreboard and Boost meter -->
             <div id="scoreboard-and-boost">
                 <div class="score-container">
                     <span class="user-score">USER: <span id="userScore">0</span></span>
@@ -203,7 +216,7 @@
 
         // --- GLOBAL VARIABLES & CONSTANTS ---
         const GRID_SIZE = 6; // Reduced by 20%
-        const BASE_TICK_INTERVAL = 63; // Increased by ~25%
+        const BASE_TICK_INTERVAL = 60; // Increased by ~25%
         const SWIPE_THRESHOLD = 30;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
