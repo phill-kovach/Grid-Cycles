@@ -39,7 +39,7 @@
         .game-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background-color: var(--medium-bg); }
         .game-display-section { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; position: relative; min-height: 0; height: 50vh; }
         .full-screen-game .game-display-section { height: 100%; padding: 0; }
-        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: #000; border-top: 4px solid #111; padding: 1rem 0; height: 50vh; }
+        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: var(--medium-bg); border-top: 4px solid #111; padding: 1rem 0; height: 50vh; }
         #game-board { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         #gameCanvas { background-color: var(--light-bg); border: 2px solid var(--user-color); box-shadow: 0 0 20px 5px var(--user-color); transition: all 0.5s ease-in-out; border-radius: 8px; }
         .game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; transition: opacity 0.5s ease-in-out; z-index: 20; }
@@ -202,8 +202,8 @@
         import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- GLOBAL VARIABLES & CONSTANTS ---
-        const GRID_SIZE = 8; // Reduced by 20%
-        const BASE_TICK_INTERVAL = 72; // Increased by ~25%
+        const GRID_SIZE = 6; // Reduced by 20%
+        const BASE_TICK_INTERVAL = 63; // Increased by ~25%
         const SWIPE_THRESHOLD = 30;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
