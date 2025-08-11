@@ -37,9 +37,9 @@
             -webkit-user-select: none;
         }
         .game-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background-color: var(--medium-bg); }
-        .game-display-section { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; position: relative; min-height: 0; }
+        .game-display-section { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; position: relative; min-height: 0; height: 50vh; }
         .full-screen-game .game-display-section { height: 100%; padding: 0; }
-        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: #000; border-top: 4px solid #111; padding: 1rem 0; }
+        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: #000; border-top: 4px solid #111; padding: 1rem 0; height: 50vh; }
         #game-board { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         #gameCanvas { background-color: var(--light-bg); border: 2px solid var(--user-color); box-shadow: 0 0 20px 5px var(--user-color); transition: all 0.5s ease-in-out; border-radius: 8px; }
         .game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; transition: opacity 0.5s ease-in-out; z-index: 20; }
@@ -75,6 +75,18 @@
         #boost-meter-bar { width: 100%; height: 100%; background-color: var(--user-color); border-radius: 5px; transition: width 0.1s linear; }
         #layout-editor-overlay { z-index: 30; }
         .layout-editor-controls { position: absolute; top: 1rem; display: flex; gap: 1rem; pointer-events: auto; }
+        /* Triangle button group specific styles */
+        .triangle-button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .triangle-button-group .bottom-row {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -90,7 +102,7 @@
             <!-- Game Menus -->
             <div id="gameMenu" class="game-overlay"><div class="game-overlay-content"><h1>LIGHTCYCLES</h1><h2>Single Player vs. MCP</h2><p>Choose your control method:</p><div class="flex flex-col sm:flex-row"><button id="controls-keyboard" class="game-button">Keyboard</button><button id="controls-buttons" class="game-button">Buttons</button><button id="controls-swipe" class="game-button">Swipe</button></div><button id="open-layout-editor-btn" class="game-button mt-4">Edit Layout</button></div></div>
             <div id="gameOverScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1 id="gameOverMessage">&lt;&lt;END OF LINE&gt;&gt;</h1><h2 id="winnerMessage" class="mt-4"></h2><div class="game-over-buttons"><button id="playAgainButton" class="game-button">Play Again</button><button id="restartGameButton" class="game-button">Restart</button></div></div></div>
-            <div id="countdown" class="game-overlay hidden"><div id="countdown-display"></div></div>
+            <div id="countdown" class="game-overlay hidden"><div class="game-overlay-content"><div id="countdown-display"></div></div></div>
             <div id="pausedScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1>PAUSED</h1></div></div>
         </div>
 
@@ -99,13 +111,13 @@
             <div id="buttons-layout" class="mobile-controls-layout hidden">
                 <!-- D-Pad buttons -->
                 <div id="dpad-container" class="draggable"><button id="up-btn" class="up"><i class="ph ph-caret-up"></i></button><button id="down-btn" class="down"><i class="ph ph-caret-down"></i></button><button id="left-btn" class="left"><i class="ph ph-caret-left"></i></button><button id="right-btn" class="right"><i class="ph ph-caret-right"></i></button><div class="resize-handle"></div></div>
-                <!-- Action buttons -->
-                <div id="action-controls-container" class="draggable flex-col md:flex-row">
-                    <div class="action-buttons-layout">
+                <!-- Action buttons (Triangle group) -->
+                <div id="action-controls-container" class="draggable triangle-button-group">
+                    <button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button>
+                    <div class="bottom-row">
                         <button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button>
                         <button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button>
                     </div>
-                    <button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button>
                     <div class="resize-handle"></div>
                 </div>
             </div>
@@ -410,7 +422,6 @@
             activeEl: null, isResizing: false,
             initialMouse: { x: 0, y: 0 },
             initialRect: { x: 0, y: 0, width: 0, height: 0 },
-            // Updated defaults to prevent overlap and match the user's desired layout
             defaults: {
                 dpad: { left: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
                 actions: { right: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' }
@@ -487,45 +498,31 @@
                     });
                 } else {
                     // This section is for the action controls
-                    const pauseBtn = el.querySelector('.pause-action-btn');
-                    const actionLayout = el.querySelector('.action-buttons-layout');
-                    if (!pauseBtn || !actionLayout) return;
-
-                    // Use flexbox for horizontal layout
-                    el.style.display = 'flex';
-                    el.style.flexDirection = 'row';
-                    el.style.alignItems = 'center';
-                    el.style.gap = '1rem'; // Spacing between button groups
-
-                    // Calculate button sizes based on the container height
-                    const containerHeight = el.offsetHeight;
-                    const largeBtnSize = containerHeight * 0.8; // Pause button size
-                    const smallBtnSize = (containerHeight * 0.8 - 10) / 2; // Boost/Brake size with a gap
-
-                    // Size the action buttons layout
-                    actionLayout.style.display = 'flex';
-                    actionLayout.style.flexDirection = 'column';
-                    actionLayout.style.gap = '10px';
-
-                    // Apply sizes to individual buttons
+                    const pauseBtn = el.querySelector('#pauseButton');
+                    const bottomRow = el.querySelector('.bottom-row');
                     const boostBtn = el.querySelector('#boost-btn');
                     const brakeBtn = el.querySelector('#brake-btn');
 
-                    if (boostBtn) {
-                        boostBtn.style.width = boostBtn.style.height = `${smallBtnSize}px`;
-                        boostBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
-                        boostBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
-                    }
-                    if (brakeBtn) {
-                        brakeBtn.style.width = brakeBtn.style.height = `${smallBtnSize}px`;
-                        brakeBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
-                        brakeBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
-                    }
-                    if (pauseBtn) {
-                        pauseBtn.style.width = pauseBtn.style.height = `${largeBtnSize}px`;
-                        pauseBtn.style.fontSize = `${largeBtnSize * 0.15}px`;
-                        pauseBtn.querySelector('span').style.fontSize = `${largeBtnSize * 0.4}px`;
-                    }
+                    if (!pauseBtn || !bottomRow || !boostBtn || !brakeBtn) return;
+
+                    // Calculate button sizes based on the container width to maintain proportions
+                    const containerWidth = el.offsetWidth;
+                    const smallBtnSize = containerWidth / 2.5; // Size for boost and brake buttons
+                    const largeBtnSize = containerWidth / 2.5; // Pause button size
+
+                    // Apply sizes and positions for the triangular layout
+                    pauseBtn.style.width = pauseBtn.style.height = `${largeBtnSize}px`;
+                    pauseBtn.style.fontSize = `${largeBtnSize * 0.15}px`;
+                    pauseBtn.querySelector('span').style.fontSize = `${largeBtnSize * 0.4}px`;
+                    pauseBtn.style.margin = '0 auto';
+
+                    boostBtn.style.width = boostBtn.style.height = `${smallBtnSize}px`;
+                    boostBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
+                    boostBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
+
+                    brakeBtn.style.width = brakeBtn.style.height = `${smallBtnSize}px`;
+                    brakeBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
+                    brakeBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
                 }
             },
             startDrag(e) {
