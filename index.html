@@ -77,8 +77,6 @@
             white-space: nowrap;
             gap: 1rem;
         }
-        .user-score { color: var(--user-color); text-shadow: 0 0 5px var(--user-color); }
-        .mcp-score { color: var(--mcp-color); text-shadow: 0 0 5px var(--mcp-color); }
         #boost-meter-container {
             width: 150px;
             height: 6px;
@@ -134,7 +132,8 @@
         }
         .layout-editor-controls {
             position: absolute;
-            top: 1rem;
+            /* Changed from 'top' to 'bottom' */
+            bottom: 1rem;
             display: flex;
             gap: 1rem;
             pointer-events: auto; /* Re-enable clicks for the control buttons */
@@ -507,9 +506,10 @@
             activeEl: null, isResizing: false,
             initialMouse: { x: 0, y: 0 },
             initialRect: { x: 0, y: 0, width: 0, height: 0 },
+            // Adjusted default width/height for action buttons to make them larger initially
             defaults: {
                 dpad: { left: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
-                actions: { right: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
+                actions: { right: '10%', top: '50%', width: '180px', height: '180px', transform: 'translateY(-50%)' },
                 scoreboard: { top: '2rem', left: '50%', width: '250px', height: '60px', transform: 'translateX(-50%)' }
             },
             init() {
@@ -529,6 +529,8 @@
                 document.addEventListener('touchend', this.endDrag.bind(this));
             },
             open() {
+                // Hiding the game menu when the layout editor opens
+                updateElementVisibility(DOMElements.gameMenu, false);
                 updateElementVisibility(DOMElements.layoutEditor.overlay, true);
                 DOMElements.buttonsLayout.classList.add('layout-editor-mode');
                 // The scoreboard is not inside buttons-layout, so add the class separately
@@ -539,6 +541,8 @@
                 updateElementVisibility(DOMElements.layoutEditor.overlay, false);
                 DOMElements.buttonsLayout.classList.remove('layout-editor-mode');
                 DOMElements.layoutEditor.scoreboard.classList.remove('layout-editor-mode');
+                // Showing the game menu when the layout editor closes
+                updateElementVisibility(DOMElements.gameMenu, true);
             },
             save() {
                 ['dpad', 'actions', 'scoreboard'].forEach(id => {
