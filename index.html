@@ -54,9 +54,7 @@
         /* Adjusted styles for the scoreboard and boost bar to be more compact and overlap with the canvas */
         #scoreboard-and-boost {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -100%); /* Position and then move up by 100% of its own height */
+            /* Removed fixed position styles to allow drag/drop */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -67,6 +65,9 @@
             box-shadow: 0 0 10px var(--user-color);
             background-color: rgba(18, 18, 18, 0.8);
             z-index: 5;
+            left: 50%;
+            top: 2rem;
+            transform: translateX(-50%);
         }
         .score-container {
             display: flex;
@@ -174,7 +175,7 @@
         <!-- Mobile controls section -->
         <div id="controls-container" class="controls-container hidden">
             <!-- Scoreboard and Boost meter -->
-            <div id="scoreboard-and-boost">
+            <div id="scoreboard-and-boost" class="draggable">
                 <div class="score-container">
                     <span class="user-score">USER: <span id="userScore">0</span></span>
                     <span class="mcp-score">MCP: <span id="mcpScore">0</span></span>
@@ -182,6 +183,7 @@
                 <div id="boost-meter-container">
                     <div id="boost-meter-bar"></div>
                 </div>
+                <div class="resize-handle"></div>
             </div>
             <div id="buttons-layout" class="mobile-controls-layout hidden">
                 <!-- D-Pad buttons -->
@@ -247,7 +249,8 @@
             layoutEditor: {
                 overlay: document.getElementById('layout-editor-overlay'),
                 dpad: document.getElementById('dpad-container'),
-                actions: document.getElementById('action-controls-container')
+                actions: document.getElementById('action-controls-container'),
+                scoreboard: document.getElementById('scoreboard-and-boost'),
             }
         };
         const ctx = DOMElements.canvas.getContext('2d');
@@ -506,7 +509,8 @@
             initialRect: { x: 0, y: 0, width: 0, height: 0 },
             defaults: {
                 dpad: { left: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
-                actions: { right: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' }
+                actions: { right: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
+                scoreboard: { top: '2rem', left: '50%', width: '250px', height: '60px', transform: 'translateX(-50%)' }
             },
             init() {
                 document.getElementById('open-layout-editor-btn').addEventListener('click', () => this.open());
@@ -514,11 +518,11 @@
                 document.getElementById('reset-layout-btn').addEventListener('click', () => this.reset());
                 document.getElementById('exit-layout-btn').addEventListener('click', () => this.close());
                 
-                // Add event listeners for drag and drop to the buttons layout
-                DOMElements.buttonsLayout.addEventListener('mousedown', this.startDrag.bind(this));
-                DOMElements.buttonsLayout.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
+                // Add event listeners for drag and drop to the controls container
+                DOMElements.controlsContainer.addEventListener('mousedown', this.startDrag.bind(this));
+                DOMElements.controlsContainer.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
                 
-                // These listeners are on the document so dragging can continue outside the button container
+                // These listeners are on the document so dragging can continue outside the container
                 document.addEventListener('mousemove', this.drag.bind(this));
                 document.addEventListener('mouseup', this.endDrag.bind(this));
                 document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
@@ -527,14 +531,17 @@
             open() {
                 updateElementVisibility(DOMElements.layoutEditor.overlay, true);
                 DOMElements.buttonsLayout.classList.add('layout-editor-mode');
+                // The scoreboard is not inside buttons-layout, so add the class separately
+                DOMElements.layoutEditor.scoreboard.classList.add('layout-editor-mode');
                 this.apply();
             },
             close() {
                 updateElementVisibility(DOMElements.layoutEditor.overlay, false);
                 DOMElements.buttonsLayout.classList.remove('layout-editor-mode');
+                DOMElements.layoutEditor.scoreboard.classList.remove('layout-editor-mode');
             },
             save() {
-                ['dpad', 'actions'].forEach(id => {
+                ['dpad', 'actions', 'scoreboard'].forEach(id => {
                     const el = DOMElements.layoutEditor[id];
                     const rect = { top: el.offsetTop, left: el.offsetLeft, width: el.offsetWidth, height: el.offsetHeight };
                     localStorage.setItem(`layout_${id}`, JSON.stringify(rect));
@@ -544,11 +551,13 @@
             reset() {
                 localStorage.removeItem('layout_dpad');
                 localStorage.removeItem('layout_actions');
+                localStorage.removeItem('layout_scoreboard');
                 this.apply();
             },
             apply() {
                 this.applyStyle('dpad');
                 this.applyStyle('actions');
+                this.applyStyle('scoreboard');
             },
             applyStyle(id) {
                 const el = DOMElements.layoutEditor[id];
@@ -582,7 +591,7 @@
                         btn.style.width = btn.style.height = `${btnSize}px`;
                         btn.style.fontSize = `${btnSize * 0.5}px`;
                     });
-                } else {
+                } else if (el.id.includes('actions')) {
                     // This section is for the action controls
                     const pauseBtn = el.querySelector('#pauseButton');
                     const bottomRow = el.querySelector('.bottom-row');
@@ -609,6 +618,17 @@
                     brakeBtn.style.width = brakeBtn.style.height = `${smallBtnSize}px`;
                     brakeBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
                     brakeBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
+                } else if (el.id === 'scoreboard-and-boost') {
+                    // This section is for the scoreboard
+                    const scoreContainer = el.querySelector('.score-container');
+                    const boostMeter = el.querySelector('#boost-meter-container');
+                    const baseWidth = 250; // Reference width from default styles
+                    const scaleFactor = newWidth / baseWidth;
+
+                    // Adjust font size and boost meter width based on the scale factor
+                    scoreContainer.style.fontSize = `${1.2 * scaleFactor}rem`;
+                    boostMeter.style.width = `${150 * scaleFactor}px`;
+                    boostMeter.style.height = `${6 * scaleFactor}px`;
                 }
             },
             startDrag(e) {
@@ -633,7 +653,7 @@
                 if (this.isResizing) {
                     const newWidth = Math.max(100, this.initialRect.width + dX);
                     this.activeEl.style.width = `${newWidth}px`;
-                    // Maintain aspect ratio for dpad, but allow flexible height for action buttons
+                    // Maintain aspect ratio for dpad, but allow flexible height for action buttons and scoreboard
                     if (this.activeEl.id === 'dpad-container') {
                          this.activeEl.style.height = `${newWidth}px`;
                     } else {
