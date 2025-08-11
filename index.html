@@ -73,8 +73,35 @@
         .ph { font-family: 'Phosphor-Regular', sans-serif; line-height: 1; }
         #boost-meter-container { position: absolute; top: 110px; left: 50%; transform: translateX(-50%); width: 250px; height: 10px; background-color: #333; border-radius: 5px; border: 1px solid #555; overflow: hidden; z-index: 5; }
         #boost-meter-bar { width: 100%; height: 100%; background-color: var(--user-color); border-radius: 5px; transition: width 0.1s linear; }
-        #layout-editor-overlay { z-index: 30; }
-        .layout-editor-controls { position: absolute; top: 1rem; display: flex; gap: 1rem; pointer-events: auto; }
+        /* Style for the layout editor UI */
+        #layout-editor-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            z-index: 30; /* Ensure it's on top of controls */
+            pointer-events: none; /* Allows clicks to pass through to the buttons */
+        }
+        .layout-editor-controls {
+            position: absolute;
+            top: 1rem;
+            display: flex;
+            gap: 1rem;
+            pointer-events: auto; /* Re-enable clicks for the control buttons */
+        }
+        .layout-editor-text {
+            color: var(--user-color);
+            font-size: 1.5rem;
+            text-shadow: 0 0 5px var(--user-color);
+            margin-bottom: 2rem;
+            pointer-events: none;
+        }
         /* Triangle button group specific styles */
         .triangle-button-group {
             display: flex;
@@ -122,8 +149,15 @@
                 </div>
             </div>
             <div id="swipe-layout" class="mobile-controls-layout hidden"><div id="swipe-pad"><p>SWIPE ANYWHERE HERE</p></div></div>
-            <!-- Layout Editor Overlay -->
-            <div id="layout-editor-overlay" class="game-overlay hidden"><h2>Drag, drop, and resize to customize your layout</h2><div class="layout-editor-controls"><button id="save-layout-btn" class="game-button">Save</button><button id="reset-layout-btn" class="game-button">Reset</button><button id="exit-layout-btn" class="game-button">Exit</button></div></div>
+            <!-- Layout Editor Overlay - Moved to controls-container -->
+            <div id="layout-editor-overlay" class="game-overlay hidden">
+                <h2 class="layout-editor-text">Drag, drop, and resize to customize your layout</h2>
+                <div class="layout-editor-controls">
+                    <button id="save-layout-btn" class="game-button">Save</button>
+                    <button id="reset-layout-btn" class="game-button">Reset</button>
+                    <button id="exit-layout-btn" class="game-button">Exit</button>
+                </div>
+            </div>
         </div>
     </div>
     <script type="module">
@@ -431,10 +465,14 @@
                 document.getElementById('save-layout-btn').addEventListener('click', () => this.save());
                 document.getElementById('reset-layout-btn').addEventListener('click', () => this.reset());
                 document.getElementById('exit-layout-btn').addEventListener('click', () => this.close());
-                DOMElements.controlsContainer.addEventListener('mousedown', this.startDrag.bind(this));
+                
+                // Add event listeners for drag and drop to the buttons layout
+                DOMElements.buttonsLayout.addEventListener('mousedown', this.startDrag.bind(this));
+                DOMElements.buttonsLayout.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
+                
+                // These listeners are on the document so dragging can continue outside the button container
                 document.addEventListener('mousemove', this.drag.bind(this));
                 document.addEventListener('mouseup', this.endDrag.bind(this));
-                DOMElements.controlsContainer.addEventListener('touchstart', this.startDrag.bind(this), { passive: false });
                 document.addEventListener('touchmove', this.drag.bind(this), { passive: false });
                 document.addEventListener('touchend', this.endDrag.bind(this));
             },
@@ -526,6 +564,9 @@
                 }
             },
             startDrag(e) {
+                // Only allow dragging in layout editor mode
+                if (!DOMElements.buttonsLayout.classList.contains('layout-editor-mode')) return;
+
                 this.activeEl = e.target.closest('.draggable');
                 if (!this.activeEl) return;
                 e.preventDefault();
