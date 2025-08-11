@@ -96,10 +96,18 @@
 
         <!-- Mobile controls section -->
         <div id="controls-container" class="controls-container hidden">
-            <!-- This is the button layout that was missing -->
             <div id="buttons-layout" class="mobile-controls-layout hidden">
+                <!-- D-Pad buttons -->
                 <div id="dpad-container" class="draggable"><button id="up-btn" class="up"><i class="ph ph-caret-up"></i></button><button id="down-btn" class="down"><i class="ph ph-caret-down"></i></button><button id="left-btn" class="left"><i class="ph ph-caret-left"></i></button><button id="right-btn" class="right"><i class="ph ph-caret-right"></i></button><div class="resize-handle"></div></div>
-                <div id="action-controls-container" class="draggable"><div class="action-buttons-layout"><button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button><button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button></div><button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button><div class="resize-handle"></div></div>
+                <!-- Action buttons -->
+                <div id="action-controls-container" class="draggable flex-col md:flex-row">
+                    <div class="action-buttons-layout">
+                        <button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button>
+                        <button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button>
+                    </div>
+                    <button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button>
+                    <div class="resize-handle"></div>
+                </div>
             </div>
             <div id="swipe-layout" class="mobile-controls-layout hidden"><div id="swipe-pad"><p>SWIPE ANYWHERE HERE</p></div></div>
             <!-- Layout Editor Overlay -->
@@ -210,7 +218,6 @@
             DOMElements.mainContainer.classList.toggle('full-screen-game', isKeyboard);
             updateElementVisibility(DOMElements.controlsContainer, !isKeyboard);
             if (!isKeyboard) {
-                // Ensure only the selected control layout is visible
                 updateElementVisibility(DOMElements.buttonsLayout, controlScheme === 'buttons');
                 updateElementVisibility(DOMElements.swipeLayout, controlScheme === 'swipe');
                 if(controlScheme === 'buttons') layoutManager.apply();
@@ -238,7 +245,7 @@
             ctx.clearRect(0, 0, DOMElements.canvas.width, DOMElements.canvas.height);
             const midY = Math.floor(DOMElements.canvas.height / 2 / GRID_SIZE) * GRID_SIZE;
             
-            // *** FIX: Resolve CSS variables to actual color values for the canvas ***
+            // Resolve CSS variables to actual color values for the canvas
             const computedStyle = getComputedStyle(DOMElements.mainContainer);
             const userColorValue = computedStyle.getPropertyValue('--user-color').trim();
             const mcpColorValue = computedStyle.getPropertyValue('--mcp-color').trim();
@@ -403,9 +410,10 @@
             activeEl: null, isResizing: false,
             initialMouse: { x: 0, y: 0 },
             initialRect: { x: 0, y: 0, width: 0, height: 0 },
+            // Updated defaults to prevent overlap and match the user's desired layout
             defaults: {
-                dpad: { left: '2rem', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
-                actions: { right: '2rem', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' }
+                dpad: { left: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
+                actions: { right: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' }
             },
             init() {
                 document.getElementById('open-layout-editor-btn').addEventListener('click', () => this.open());
@@ -478,25 +486,46 @@
                         btn.style.fontSize = `${btnSize * 0.5}px`;
                     });
                 } else {
+                    // This section is for the action controls
                     const pauseBtn = el.querySelector('.pause-action-btn');
                     const actionLayout = el.querySelector('.action-buttons-layout');
-                    if (!pauseBtn || !actionLayout) return; // Add a safety check
-                    
-                    const pauseSize = newWidth / 2;
-                    const actionHeight = el.offsetHeight - pauseSize - 10;
-                    
-                    actionLayout.style.height = `${actionHeight}px`;
+                    if (!pauseBtn || !actionLayout) return;
 
-                    const actionBtn = el.querySelector('.action-btn');
-                    if (actionBtn) {
-                        actionBtn.style.width = actionBtn.style.height = `${pauseSize}px`;
-                        actionBtn.style.fontSize = `${pauseSize * 0.15}px`;
-                        actionBtn.querySelector('span').style.fontSize = `${pauseSize * 0.4}px`;
+                    // Use flexbox for horizontal layout
+                    el.style.display = 'flex';
+                    el.style.flexDirection = 'row';
+                    el.style.alignItems = 'center';
+                    el.style.gap = '1rem'; // Spacing between button groups
+
+                    // Calculate button sizes based on the container height
+                    const containerHeight = el.offsetHeight;
+                    const largeBtnSize = containerHeight * 0.8; // Pause button size
+                    const smallBtnSize = (containerHeight * 0.8 - 10) / 2; // Boost/Brake size with a gap
+
+                    // Size the action buttons layout
+                    actionLayout.style.display = 'flex';
+                    actionLayout.style.flexDirection = 'column';
+                    actionLayout.style.gap = '10px';
+
+                    // Apply sizes to individual buttons
+                    const boostBtn = el.querySelector('#boost-btn');
+                    const brakeBtn = el.querySelector('#brake-btn');
+
+                    if (boostBtn) {
+                        boostBtn.style.width = boostBtn.style.height = `${smallBtnSize}px`;
+                        boostBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
+                        boostBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
                     }
-                    
-                    pauseBtn.style.width = pauseBtn.style.height = `${pauseSize}px`;
-                    pauseBtn.style.fontSize = `${pauseSize * 0.15}px`;
-                    pauseBtn.querySelector('span').style.fontSize = `${pauseSize * 0.4}px`;
+                    if (brakeBtn) {
+                        brakeBtn.style.width = brakeBtn.style.height = `${smallBtnSize}px`;
+                        brakeBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
+                        brakeBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
+                    }
+                    if (pauseBtn) {
+                        pauseBtn.style.width = pauseBtn.style.height = `${largeBtnSize}px`;
+                        pauseBtn.style.fontSize = `${largeBtnSize * 0.15}px`;
+                        pauseBtn.querySelector('span').style.fontSize = `${largeBtnSize * 0.4}px`;
+                    }
                 }
             },
             startDrag(e) {
@@ -518,7 +547,7 @@
                 if (this.isResizing) {
                     const newWidth = Math.max(100, this.initialRect.width + dX);
                     this.activeEl.style.width = `${newWidth}px`;
-                    // Maintain aspect ratio only if it's the dpad
+                    // Maintain aspect ratio for dpad, but allow flexible height for action buttons
                     if (this.activeEl.id === 'dpad-container') {
                          this.activeEl.style.height = `${newWidth}px`;
                     } else {
@@ -561,4 +590,3 @@
     </script>
 </body>
 </html>
-
