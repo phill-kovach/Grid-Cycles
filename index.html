@@ -96,6 +96,7 @@
 
         <!-- Mobile controls section -->
         <div id="controls-container" class="controls-container hidden">
+            <!-- This is the button layout that was missing -->
             <div id="buttons-layout" class="mobile-controls-layout hidden">
                 <div id="dpad-container" class="draggable"><button id="up-btn" class="up"><i class="ph ph-caret-up"></i></button><button id="down-btn" class="down"><i class="ph ph-caret-down"></i></button><button id="left-btn" class="left"><i class="ph ph-caret-left"></i></button><button id="right-btn" class="right"><i class="ph ph-caret-right"></i></button><div class="resize-handle"></div></div>
                 <div id="action-controls-container" class="draggable"><div class="action-buttons-layout"><button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button><button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button></div><button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button><div class="resize-handle"></div></div>
@@ -209,6 +210,7 @@
             DOMElements.mainContainer.classList.toggle('full-screen-game', isKeyboard);
             updateElementVisibility(DOMElements.controlsContainer, !isKeyboard);
             if (!isKeyboard) {
+                // Ensure only the selected control layout is visible
                 updateElementVisibility(DOMElements.buttonsLayout, controlScheme === 'buttons');
                 updateElementVisibility(DOMElements.swipeLayout, controlScheme === 'swipe');
                 if(controlScheme === 'buttons') layoutManager.apply();
@@ -447,13 +449,24 @@
                 const el = DOMElements.layoutEditor[id];
                 const saved = JSON.parse(localStorage.getItem(`layout_${id}`));
                 const def = this.defaults[id];
-                Object.keys(def).forEach(key => el.style[key] = saved ? 'auto' : def[key]);
+                // Reset styles
+                el.style.left = '';
+                el.style.top = '';
+                el.style.width = '';
+                el.style.height = '';
+                el.style.transform = '';
+                
                 if (saved) {
                     el.style.left = `${saved.left}px`;
                     el.style.top = `${saved.top}px`;
                     el.style.width = `${saved.width}px`;
                     el.style.height = `${saved.height}px`;
-                    el.style.transform = 'none';
+                } else {
+                    el.style.left = def.left;
+                    el.style.top = def.top;
+                    el.style.width = def.width;
+                    el.style.height = def.height;
+                    el.style.transform = def.transform;
                 }
                 this.updateControlSizes(el, saved ? saved.width : parseInt(def.width));
             },
@@ -465,17 +478,25 @@
                         btn.style.fontSize = `${btnSize * 0.5}px`;
                     });
                 } else {
+                    const pauseBtn = el.querySelector('.pause-action-btn');
+                    const actionLayout = el.querySelector('.action-buttons-layout');
+                    if (!pauseBtn || !actionLayout) return; // Add a safety check
+                    
                     const pauseSize = newWidth / 2;
                     const actionHeight = el.offsetHeight - pauseSize - 10;
+                    
+                    actionLayout.style.height = `${actionHeight}px`;
+
                     const actionBtn = el.querySelector('.action-btn');
-                    const pauseBtn = el.querySelector('.pause-action-btn');
-                    el.querySelector('.action-buttons-layout').style.height = `${actionHeight}px`;
-                    [actionBtn, pauseBtn].forEach(btn => {
-                        if(!btn) return;
-                        btn.style.width = btn.style.height = `${pauseSize}px`;
-                        btn.style.fontSize = `${pauseSize * 0.15}px`;
-                        btn.querySelector('span').style.fontSize = `${pauseSize * 0.4}px`;
-                    });
+                    if (actionBtn) {
+                        actionBtn.style.width = actionBtn.style.height = `${pauseSize}px`;
+                        actionBtn.style.fontSize = `${pauseSize * 0.15}px`;
+                        actionBtn.querySelector('span').style.fontSize = `${pauseSize * 0.4}px`;
+                    }
+                    
+                    pauseBtn.style.width = pauseBtn.style.height = `${pauseSize}px`;
+                    pauseBtn.style.fontSize = `${pauseSize * 0.15}px`;
+                    pauseBtn.querySelector('span').style.fontSize = `${pauseSize * 0.4}px`;
                 }
             },
             startDrag(e) {
@@ -497,7 +518,12 @@
                 if (this.isResizing) {
                     const newWidth = Math.max(100, this.initialRect.width + dX);
                     this.activeEl.style.width = `${newWidth}px`;
-                    this.activeEl.style.height = `${this.initialRect.height * (newWidth / this.initialRect.width)}px`; // Maintain aspect ratio
+                    // Maintain aspect ratio only if it's the dpad
+                    if (this.activeEl.id === 'dpad-container') {
+                         this.activeEl.style.height = `${newWidth}px`;
+                    } else {
+                         this.activeEl.style.height = `${this.initialRect.height + dY}px`;
+                    }
                     this.updateControlSizes(this.activeEl, newWidth);
                 } else {
                     this.activeEl.style.left = `${this.initialRect.x + dX}px`;
@@ -535,3 +561,4 @@
     </script>
 </body>
 </html>
+
