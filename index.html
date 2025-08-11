@@ -109,8 +109,13 @@
         #dpad-container button.down { grid-area: down; }
         #dpad-container button.left { grid-area: left; }
         #dpad-container button.right { grid-area: right; }
-        #action-controls-container { display: flex; align-items: center; gap: 1rem; }
-        .action-buttons-layout { display: flex; flex-direction: column; gap: 10px; }
+        #action-controls-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 16px;
+        }
         .action-btn { border-radius: 9999px; background-color: #002222; border: 2px solid #0ff; box-shadow: 0 0 8px #0ff; color: #0ff; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
         .pause-action-btn { border-radius: 50%; background-color: var(--mcp-color); border: 2px solid var(--mcp-color); box-shadow: 0 0 8px var(--mcp-color); color: var(--dark-bg); display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; text-transform: uppercase; font-weight: 700; transition: all 0.1s ease; line-height: 1; }
         #swipe-pad { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 2rem; color: rgba(0, 192, 192, 0.3); text-shadow: 0 0 5px rgba(0, 192, 192, 0.5); pointer-events: auto; }
@@ -132,8 +137,8 @@
         }
         .layout-editor-controls {
             position: absolute;
-            /* Changed from 'top' to 'bottom' */
-            bottom: 1rem;
+            top: 1rem;
+            right: 1rem;
             display: flex;
             gap: 1rem;
             pointer-events: auto; /* Re-enable clicks for the control buttons */
@@ -144,18 +149,6 @@
             text-shadow: 0 0 5px var(--user-color);
             margin-bottom: 2rem;
             pointer-events: none;
-        }
-        /* Triangle button group specific styles */
-        .triangle-button-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 10px;
-        }
-        .triangle-button-group .bottom-row {
-            display: flex;
-            flex-direction: row;
-            gap: 10px;
         }
     </style>
 </head>
@@ -169,6 +162,15 @@
             <div id="gameOverScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1 id="gameOverMessage">&lt;&lt;END OF LINE&gt;&gt;</h1><h2 id="winnerMessage" class="mt-4"></h2><div class="game-over-buttons"><button id="playAgainButton" class="game-button">Play Again</button><button id="restartGameButton" class="game-button">Restart</button></div></div></div>
             <div id="countdown" class="game-overlay hidden"><div id="countdown-display"></div></div>
             <div id="pausedScreen" class="game-overlay hidden"><div class="game-overlay-content"><h1>PAUSED</h1></div></div>
+            <!-- Layout Editor Overlay - MOVED TO GAME DISPLAY SECTION -->
+            <div id="layout-editor-overlay" class="game-overlay hidden">
+                <h2 class="layout-editor-text">Drag, drop, and resize to customize your layout</h2>
+                <div class="layout-editor-controls">
+                    <button id="save-layout-btn" class="game-button">Save</button>
+                    <button id="reset-layout-btn" class="game-button">Reset</button>
+                    <button id="exit-layout-btn" class="game-button">Exit</button>
+                </div>
+            </div>
         </div>
 
         <!-- Mobile controls section -->
@@ -187,26 +189,15 @@
             <div id="buttons-layout" class="mobile-controls-layout hidden">
                 <!-- D-Pad buttons -->
                 <div id="dpad-container" class="draggable"><button id="up-btn" class="up"><i class="ph ph-caret-up"></i></button><button id="down-btn" class="down"><i class="ph ph-caret-down"></i></button><button id="left-btn" class="left"><i class="ph ph-caret-left"></i></button><button id="right-btn" class="right"><i class="ph ph-caret-right"></i></button><div class="resize-handle"></div></div>
-                <!-- Action buttons (Triangle group) -->
-                <div id="action-controls-container" class="draggable triangle-button-group">
+                <!-- Action buttons -->
+                <div id="action-controls-container" class="draggable">
                     <button class="pause-action-btn" id="pauseButton"><span><i class="ph ph-pause"></i></span>PAUSE</button>
-                    <div class="bottom-row">
-                        <button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button>
-                        <button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button>
-                    </div>
+                    <button class="action-btn" id="boost-btn"><span><i class="ph ph-rocket-launch"></i></span>BOOST</button>
+                    <button class="action-btn" id="brake-btn"><span><i class="ph ph-hand-palm"></i></span>BRAKE</button>
                     <div class="resize-handle"></div>
                 </div>
             </div>
             <div id="swipe-layout" class="mobile-controls-layout hidden"><div id="swipe-pad"><p>SWIPE ANYWHERE HERE</p></div></div>
-            <!-- Layout Editor Overlay - Moved to controls-container -->
-            <div id="layout-editor-overlay" class="game-overlay hidden">
-                <h2 class="layout-editor-text">Drag, drop, and resize to customize your layout</h2>
-                <div class="layout-editor-controls">
-                    <button id="save-layout-btn" class="game-button">Save</button>
-                    <button id="reset-layout-btn" class="game-button">Reset</button>
-                    <button id="exit-layout-btn" class="game-button">Exit</button>
-                </div>
-            </div>
         </div>
     </div>
     <script type="module">
@@ -506,10 +497,9 @@
             activeEl: null, isResizing: false,
             initialMouse: { x: 0, y: 0 },
             initialRect: { x: 0, y: 0, width: 0, height: 0 },
-            // Adjusted default width/height for action buttons to make them larger initially
             defaults: {
                 dpad: { left: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
-                actions: { right: '10%', top: '50%', width: '180px', height: '180px', transform: 'translateY(-50%)' },
+                actions: { right: '10%', top: '50%', width: '250px', height: '300px', transform: 'translateY(-50%)' },
                 scoreboard: { top: '2rem', left: '50%', width: '250px', height: '60px', transform: 'translateX(-50%)' }
             },
             init() {
@@ -597,31 +587,20 @@
                     });
                 } else if (el.id.includes('actions')) {
                     // This section is for the action controls
-                    const pauseBtn = el.querySelector('#pauseButton');
-                    const bottomRow = el.querySelector('.bottom-row');
-                    const boostBtn = el.querySelector('#boost-btn');
-                    const brakeBtn = el.querySelector('#brake-btn');
-
-                    if (!pauseBtn || !bottomRow || !boostBtn || !brakeBtn) return;
-
-                    // Calculate button sizes based on the container width to maintain proportions
                     const containerWidth = el.offsetWidth;
-                    const smallBtnSize = containerWidth / 2.5; // Size for boost and brake buttons
-                    const largeBtnSize = containerWidth / 2.5; // Pause button size
+                    // Calculate a consistent button size for all three action buttons
+                    const btnSize = containerWidth / 2.5;
+                    const buttons = el.querySelectorAll('button');
 
-                    // Apply sizes and positions for the triangular layout
-                    pauseBtn.style.width = pauseBtn.style.height = `${largeBtnSize}px`;
-                    pauseBtn.style.fontSize = `${largeBtnSize * 0.15}px`;
-                    pauseBtn.querySelector('span').style.fontSize = `${largeBtnSize * 0.4}px`;
-                    pauseBtn.style.margin = '0 auto';
-
-                    boostBtn.style.width = boostBtn.style.height = `${smallBtnSize}px`;
-                    boostBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
-                    boostBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
-
-                    brakeBtn.style.width = brakeBtn.style.height = `${smallBtnSize}px`;
-                    brakeBtn.style.fontSize = `${smallBtnSize * 0.15}px`;
-                    brakeBtn.querySelector('span').style.fontSize = `${smallBtnSize * 0.4}px`;
+                    buttons.forEach(btn => {
+                        btn.style.width = btn.style.height = `${btnSize}px`;
+                        btn.style.fontSize = `${btnSize * 0.15}px`;
+                        // This handles the icon size within the button
+                        const iconSpan = btn.querySelector('span');
+                        if (iconSpan) {
+                            iconSpan.style.fontSize = `${btnSize * 0.4}px`;
+                        }
+                    });
                 } else if (el.id === 'scoreboard-and-boost') {
                     // This section is for the scoreboard
                     const scoreContainer = el.querySelector('.score-container');
