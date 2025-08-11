@@ -39,8 +39,8 @@
         .game-container { display: flex; flex-direction: column; height: 100vh; width: 100vw; position: relative; background-color: var(--medium-bg); }
         .game-display-section { flex-grow: 1; width: 100%; display: flex; justify-content: center; align-items: center; padding: 1rem; box-sizing: border-box; position: relative; min-height: 0; height: 50vh; }
         .full-screen-game .game-display-section { height: 100%; padding: 0; }
-        /* Updated styles to make the control area seamless with the game area */
-        .controls-container { flex-shrink: 0; width: 100%; display: flex; justify-content: center; align-items: center; box-sizing: border-box; position: relative; background-color: var(--medium-bg); border-top: 4px solid var(--dark-bg); padding: 1rem 0; height: 50vh; }
+        /* Updated styles for the controls container to use flexbox */
+        .controls-container { flex-shrink: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; box-sizing: border-box; position: relative; background-color: var(--medium-bg); border-top: 4px solid var(--dark-bg); padding: 1rem 0; height: 50vh; overflow: hidden; }
         #game-board { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
         #gameCanvas { background-color: var(--light-bg); border: 2px solid var(--user-color); box-shadow: 0 0 20px 5px var(--user-color); transition: all 0.5s ease-in-out; border-radius: 8px; }
         .game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; flex-direction: column; text-align: center; transition: opacity 0.5s ease-in-out; z-index: 20; }
@@ -51,23 +51,19 @@
         .game-button { padding: 0.75rem 2.5rem; font-size: 1.5rem; font-weight: 700; color: var(--dark-bg); background-color: var(--user-color); border: none; border-radius: 9999px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 192, 192, 0.5); transition: all 0.2s ease-in-out; text-transform: uppercase; letter-spacing: 1px; margin: 0.5rem; }
         .game-button:hover { background-color: #00e0e0; box-shadow: 0 6px 18px rgba(0, 192, 192, 0.7); transform: translateY(-2px); }
         .hidden { display: none !important; }
-        /* Adjusted styles for the scoreboard and boost bar to be more compact and overlap with the canvas */
+        /* Fixed scoreboard position at the top of the controls area */
         #scoreboard-and-boost {
-            position: absolute;
-            /* Removed fixed position styles to allow drag/drop */
+            position: relative; /* Changed from absolute to relative */
             display: flex;
             flex-direction: column;
             align-items: center;
             border: 2px solid var(--user-color);
-            border-bottom: none; /* Removed the bottom border for seamless look */
-            border-radius: 8px 8px 0 0; /* Only top corners are rounded */
+            border-radius: 8px;
             padding: 0.5rem;
             box-shadow: 0 0 10px var(--user-color);
             background-color: rgba(18, 18, 18, 0.8);
             z-index: 5;
-            left: 50%;
-            top: 2rem;
-            transform: translateX(-50%);
+            margin-bottom: 1rem; /* Add margin to separate from controls */
         }
         .score-container {
             display: flex;
@@ -215,7 +211,8 @@
         <!-- Mobile controls section -->
         <div id="controls-container" class="controls-container hidden">
             <!-- Scoreboard and Boost meter -->
-            <div id="scoreboard-and-boost" class="draggable">
+            <!-- Removed the 'draggable' class and the resize handle -->
+            <div id="scoreboard-and-boost">
                 <div class="score-container">
                     <span class="user-score">USER: <span id="userScore">0</span></span>
                     <span class="mcp-score">MCP: <span id="mcpScore">0</span></span>
@@ -223,7 +220,6 @@
                 <div id="boost-meter-container">
                     <div id="boost-meter-bar"></div>
                 </div>
-                <div class="resize-handle"></div>
             </div>
             <div id="buttons-layout" class="mobile-controls-layout hidden">
                 <!-- D-Pad buttons -->
@@ -346,7 +342,7 @@
             if (!isKeyboard) {
                 updateElementVisibility(DOMElements.buttonsLayout, controlScheme === 'buttons');
                 updateElementVisibility(DOMElements.swipeLayout, controlScheme === 'swipe');
-                if(controlScheme === 'buttons') layoutManager.apply();
+                layoutManager.apply();
             }
             
             setTimeout(() => {
@@ -418,15 +414,34 @@
         const checkCollision = (x, y) => x < 0 || x >= DOMElements.canvas.width || y < 0 || y >= DOMElements.canvas.height || allTrails.has(`${x},${y}`);
 
         function updateMcpDirection() {
-            if (!checkCollision(mcp.x + mcp.dx, mcp.y + mcp.dy)) return;
-            const moves = [{ dx: 0, dy: -GRID_SIZE }, { dx: 0, dy: GRID_SIZE }, { dx: -GRID_SIZE, dy: 0 }, { dx: GRID_SIZE, dy: 0 }]
-                .filter(d => !(d.dx === -mcp.dx && d.dy === -mcp.dy) && !checkCollision(mcp.x + d.dx, mcp.y + d.dy));
-            if (moves.length === 0) return;
-            const bestMove = moves.reduce((best, move) => {
-                const score = (1000 / Math.hypot(mcp.x + move.dx - user.x, mcp.y + move.dy - user.y)) + (Math.random() * 20);
-                return score > best.score ? { move, score } : best;
-            }, { move: moves[0], score: -Infinity });
-            Object.assign(mcp, bestMove.move);
+            // New logic: Check for collision in the next 3 steps
+            let collisionAhead = false;
+            let checkX = mcp.x;
+            let checkY = mcp.y;
+            for (let i = 0; i < 3; i++) {
+                checkX += mcp.dx;
+                checkY += mcp.dy;
+                if (checkCollision(checkX, checkY)) {
+                    collisionAhead = true;
+                    break;
+                }
+            }
+
+            if (collisionAhead) {
+                // If a collision is imminent, find all safe directions
+                const possibleMoves = [{ dx: 0, dy: -GRID_SIZE }, { dx: 0, dy: GRID_SIZE }, { dx: -GRID_SIZE, dy: 0 }, { dx: GRID_SIZE, dy: 0 }];
+                const safeMoves = possibleMoves.filter(d => 
+                    // Don't turn back on itself
+                    !(d.dx === -mcp.dx && d.dy === -mcp.dy) && 
+                    // Check if the path is clear for the next step
+                    !checkCollision(mcp.x + d.dx, mcp.y + d.dy)
+                );
+                
+                if (safeMoves.length > 0) {
+                    const randomMove = safeMoves[Math.floor(Math.random() * safeMoves.length)];
+                    Object.assign(mcp, randomMove);
+                }
+            }
         }
 
         function drawGame() {
@@ -538,8 +553,7 @@
             initialRect: { x: 0, y: 0, width: 0, height: 0 },
             defaults: {
                 dpad: { left: '10%', top: '50%', width: '250px', height: '250px', transform: 'translateY(-50%)' },
-                actions: { right: '10%', top: '50%', width: '250px', height: '300px', transform: 'translateY(-50%)' },
-                scoreboard: { top: '2rem', left: '50%', width: '250px', height: '60px', transform: 'translateX(-50%)' }
+                actions: { right: '10%', top: '50%', width: '250px', height: '300px', transform: 'translateY(-50%)' }
             },
             init() {
                 document.getElementById('open-layout-editor-btn').addEventListener('click', () => this.open());
@@ -562,20 +576,16 @@
                 updateElementVisibility(DOMElements.gameMenu, false);
                 updateElementVisibility(DOMElements.layoutEditor.overlay, true);
                 DOMElements.buttonsLayout.classList.add('layout-editor-mode');
-                // The scoreboard is not inside buttons-layout, so add the class separately
-                DOMElements.layoutEditor.scoreboard.classList.add('layout-editor-mode');
-                // *** FIX: Apply the saved layout immediately when opening the editor ***
+                // The scoreboard is no longer draggable, so it doesn't need this class
                 this.apply();
             },
             close() {
                 updateElementVisibility(DOMElements.layoutEditor.overlay, false);
                 DOMElements.buttonsLayout.classList.remove('layout-editor-mode');
-                DOMElements.layoutEditor.scoreboard.classList.remove('layout-editor-mode');
-                // Showing the game menu when the layout editor closes
                 updateElementVisibility(DOMElements.gameMenu, true);
             },
             save() {
-                ['dpad', 'actions', 'scoreboard'].forEach(id => {
+                ['dpad', 'actions'].forEach(id => {
                     const el = DOMElements.layoutEditor[id];
                     const rect = { top: el.offsetTop, left: el.offsetLeft, width: el.offsetWidth, height: el.offsetHeight };
                     localStorage.setItem(`layout_${id}`, JSON.stringify(rect));
@@ -585,13 +595,11 @@
             reset() {
                 localStorage.removeItem('layout_dpad');
                 localStorage.removeItem('layout_actions');
-                localStorage.removeItem('layout_scoreboard');
                 this.apply();
             },
             apply() {
                 this.applyStyle('dpad');
                 this.applyStyle('actions');
-                this.applyStyle('scoreboard');
             },
             applyStyle(id) {
                 const el = DOMElements.layoutEditor[id];
@@ -625,33 +633,6 @@
                         btn.style.width = btn.style.height = `${btnSize}px`;
                         btn.style.fontSize = `${btnSize * 0.5}px`;
                     });
-                } /* else if (el.id.includes('actions')) {
-                    // This section is for the action controls
-                    const containerWidth = el.offsetWidth;
-                    // Calculate a consistent button size for all three action buttons
-                    const btnSize = containerWidth / 2.5;
-                    const buttons = el.querySelectorAll('button');
-
-                    buttons.forEach(btn => {
-                        btn.style.width = btn.style.height = `${btnSize}px`;
-                        btn.style.fontSize = `${btnSize * 0.15}px`;
-                        // This handles the icon size within the button
-                        const iconSpan = btn.querySelector('span');
-                        if (iconSpan) {
-                            iconSpan.style.fontSize = `${btnSize * 0.4}px`;
-                        }
-                    });
-                } */ else if (el.id === 'scoreboard-and-boost') {
-                    // This section is for the scoreboard
-                    const scoreContainer = el.querySelector('.score-container');
-                    const boostMeter = el.querySelector('#boost-meter-container');
-                    const baseWidth = 250; // Reference width from default styles
-                    const scaleFactor = newWidth / baseWidth;
-
-                    // Adjust font size and boost meter width based on the scale factor
-                    scoreContainer.style.fontSize = `${1.2 * scaleFactor}rem`;
-                    boostMeter.style.width = `${150 * scaleFactor}px`;
-                    boostMeter.style.height = `${6 * scaleFactor}px`;
                 }
             },
             startDrag(e) {
@@ -676,7 +657,7 @@
                 if (this.isResizing) {
                     const newWidth = Math.max(100, this.initialRect.width + dX);
                     this.activeEl.style.width = `${newWidth}px`;
-                    // Maintain aspect ratio for dpad, but allow flexible height for action buttons and scoreboard
+                    // Maintain aspect ratio for dpad, but allow flexible height for action buttons
                     if (this.activeEl.id === 'dpad-container') {
                          this.activeEl.style.height = `${newWidth}px`;
                     } else {
